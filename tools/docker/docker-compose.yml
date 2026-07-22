@@ -1,4 +1,4 @@
-version: "3.7"
+name: rathena-nmey
 
 services:
     db:
@@ -31,7 +31,7 @@ services:
             context: .
             dockerfile: Dockerfile
         environment:
-            BUILDER_CONFIGURE: "--enable-packetver=20211103"
+            BUILDER_CONFIGURE: "--enable-packetver=20111102 --enable-prere=yes"
 
     login:
         image: "rathena:local"
