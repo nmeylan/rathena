@@ -1,11 +1,12 @@
-name: rathena-nmey
+name: rathena-nostlro
 
 services:
     db:
         image: "mariadb:noble"
-        container_name: "rathena-db"
+        container_name: "nostalro-rathena-db"
+        command: --port=23306
         ports:
-            - "3306:3306" # allow DB connections from host
+            - "23306:23306" # allow DB connections from host
         volumes:
             - "rathenadb:/var/lib/mysql" # save database to local disk
             - "../../sql-files/:/docker-entrypoint-initdb.d" # initialize db with ./sql-files
@@ -17,11 +18,12 @@ services:
 
     builder:
         image: "rathena:local"
-        container_name: "rathena-builder"
+        container_name: "nostalro-rathena-builder"
         command: "/rathena/tools/docker/builder.sh"
         volumes:
             - "../..:/rathena" # mount git repo directory inside container
             - "./asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt" # load db connection
+            - "./asset/login_conf.txt:/rathena/conf/import/login_conf.txt" #localdev login server port
             - "./asset/char_conf.txt:/rathena/conf/import/char_conf.txt"   #localdev login-char relation
             - "./asset/map_conf.txt:/rathena/conf/import/map_conf.txt"     #localdev char-map relation
         init: true # helps with signal forwarding and process reaping
@@ -35,13 +37,14 @@ services:
 
     login:
         image: "rathena:local"
-        container_name: "rathena-login"
-        command: sh -c "/bin/wait-for db:3306 -- /rathena/login-server"
+        container_name: "nostalro-rathena-login"
+        command: sh -c "/bin/wait-for db:23306 -- /rathena/login-server"
         ports:
-            - "6900:6900" # login server
+            - "26900:26900" # login server
         volumes:
             - "../..:/rathena" # mount git repo directory inside container
             - "./asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt" # load db connection
+            - "./asset/login_conf.txt:/rathena/conf/import/login_conf.txt" #localdev login server port
             - "./asset/char_conf.txt:/rathena/conf/import/char_conf.txt"   #localdev login-char relation
             - "./asset/map_conf.txt:/rathena/conf/import/map_conf.txt"     #localdev char-map relation
         init: true # helps with signal forwarding and process reaping
@@ -54,13 +57,14 @@ services:
             - db
     char:
         image: "rathena:local"
-        container_name: "rathena-char"
-        command: sh -c "/bin/wait-for db:3306 -- /rathena/char-server"
+        container_name: "nostalro-rathena-char"
+        command: sh -c "/bin/wait-for db:23306 -- /rathena/char-server"
         ports:
-            - "6121:6121" # char server
+            - "26121:26121" # char server
         volumes:
             - "../..:/rathena" # mount git repo directory inside container
             - "./asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt" # load db connection
+            - "./asset/login_conf.txt:/rathena/conf/import/login_conf.txt" #localdev login server port
             - "./asset/char_conf.txt:/rathena/conf/import/char_conf.txt"   #localdev login-char relation
             - "./asset/map_conf.txt:/rathena/conf/import/map_conf.txt"     #localdev char-map relation
         init: true # helps with signal forwarding and process reaping
@@ -73,13 +77,14 @@ services:
             - login
     map:
         image: "rathena:local"
-        container_name: "rathena-map"
-        command: sh -c "/bin/wait-for db:3306 -- /rathena/map-server"
+        container_name: "nostalro-rathena-map"
+        command: sh -c "/bin/wait-for db:23306 -- /rathena/map-server"
         ports:
-            - "5121:5121" # map server
+            - "25121:25121" # map server
         volumes:
             - "../..:/rathena" # mount git repo directory inside container
             - "./asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt" # load db connection
+            - "./asset/login_conf.txt:/rathena/conf/import/login_conf.txt" #localdev login server port
             - "./asset/char_conf.txt:/rathena/conf/import/char_conf.txt"   #localdev login-char relation
             - "./asset/map_conf.txt:/rathena/conf/import/map_conf.txt"     #localdev char-map relation
         init: true # helps with signal forwarding and process reaping

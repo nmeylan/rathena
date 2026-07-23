@@ -1,2 +1,4 @@
 char_ip: char
+char_port: 26121
 map_ip: 127.0.0.1
+map_port: 25121

@@ -1,5 +1,12 @@
 login_server_ip: db
+login_server_port: 23306
 ipban_db_ip: db
+ipban_db_port: 23306
 char_server_ip: db
+char_server_port: 23306
 map_server_ip: db
+map_server_port: 23306
+web_server_ip: db
+web_server_port: 23306
 log_db_ip: db
+log_db_port: 23306
