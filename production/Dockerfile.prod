@@ -7,13 +7,31 @@ FROM alpine:3.23 AS build
 
 ARG BUILDER_CONFIGURE="--enable-packetver=20111102 --enable-prere=yes"
 
+# Optimisation level only — `-g` is deliberately dropped. autoconf defaults
+# CXXFLAGS to `-g -O2`, and on src/map/skill.cpp (a unity build: it #includes
+# skills/skill_factory.cpp, which pulls all ~1200 skill sources into a single
+# translation unit) the debug info costs ~650 MiB of peak RSS and ~45% of the
+# wall time — for symbols the runtime stage throws away anyway. Measured on
+# that one file: `-g -O2` 3.7 GiB / 52 s, `-O2` 3.1 GiB / 36 s.
+ARG BUILDER_CXXFLAGS="-O2"
+
+# Parallel compile jobs. Keep this low on small hosts: skill.cpp alone peaks
+# around 3 GiB, so every extra job needs its own headroom on top of that. A
+# 4 GB box should stay at 1-2 *and* have a few GB of swap, or the OOM killer
+# takes out g++ mid-build.
+ARG MAKE_JOBS=1
+
 RUN apk add --no-cache \
         git cmake make gcc g++ bash \
         zlib-dev mariadb-dev linux-headers
 
 WORKDIR /rathena
 COPY . /rathena
-RUN ./configure ${BUILDER_CONFIGURE} && make clean server
+# `clean` and `server` are separate invocations: `make -j clean server` would
+# run them concurrently and delete objects out from under the compile.
+RUN ./configure ${BUILDER_CONFIGURE} CXXFLAGS="${BUILDER_CXXFLAGS}" \
+ && make clean \
+ && make -j${MAKE_JOBS} server
 
 ##############################################################################
 # Runtime stage — no compiler, no git, non-root, minimal libs

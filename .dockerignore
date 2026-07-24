@@ -1,0 +1,51 @@
+# Build context for production/Dockerfile.prod (context = repo root).
+#
+# Two reasons to keep this tight: the context is uploaded to the daemon on
+# every build (.git alone is ~400 MB), and anything left in here busts the
+# `COPY . /rathena` layer — which means a full recompile of the map server.
+
+.git
+.github
+.idea
+.vscode
+.cache
+
+# Local autotools / CMake output. configure + make run again inside the image,
+# and host-built objects are glibc while the image is musl.
+Makefile
+src/**/Makefile
+3rdparty/**/Makefile
+config.log
+config.status
+autom4te.cache
+cmake-build-*
+build
+**/obj
+**/obj-gen
+**/obj_sql
+**/*.o
+**/*.a
+
+# Host-built binaries — rebuilt in the build stage.
+login-server
+char-server
+map-server
+web-server
+map-server-generator
+csv2yaml
+yaml2sql
+yamlupgrade
+mapcache
+
+# Per-admin config and runtime state. `make import` recreates conf/import,
+# conf/msg_conf/import and db/import from the *-tmpl defaults in the build
+# stage, so local edits (and any DB credentials in them) stay out of the image.
+conf/import
+conf/msg_conf/import
+db/import
+log
+
+# Deployment dir: .env files and rendered configs, i.e. DB credentials. The
+# build needs nothing from here — the Dockerfile itself is read by the builder
+# outside of the context, so excluding it is safe.
+production

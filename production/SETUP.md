@@ -42,10 +42,34 @@ $EDITOR .env                                    # DB_ROOT_PASSWORD + DB_PASSWORD
 ./render-assets.sh --login                      # -> asset-login/inter_conf.txt
 ```
 
-**2. Bring up the login stack** (builds the shared image, starts db + login):
+**2. Get the `rathena:prod` image.** Compiling it needs **~3 GiB of RAM for a
+single g++ process** — `src/map/skill.cpp` is a unity build of ~1200 skill
+sources and `-j` cannot split it ([why](#build-reference)). So pick one:
+
+*Option A (recommended) — compile on a machine with cores and RAM, ship the
+image.* Only the login stack has a `build:` block; everything else refers to
+`rathena:prod` by name, so the VPS never needs a compiler:
 
 ```bash
-docker compose -f docker-compose.login.yml --env-file .env up -d --build
+# on the build machine, from production/ — the context is the repo root (..)
+docker build -t rathena:prod -f Dockerfile.prod ..
+docker save rathena:prod | zstd -3 | ssh VPS 'zstd -d | docker load'
+```
+
+*Option B — compile on the VPS.* On a 4 GB host this **needs swap first**, or the
+OOM killer stops the build hours in (`dmesg | grep -i oom`):
+
+```bash
+fallocate -l 6G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab   # survive reboot
+
+docker compose -f docker-compose.login.yml --env-file .env build --build-arg MAKE_JOBS=2
+```
+
+Then start db + login (with option A, this is the only command you run here):
+
+```bash
+docker compose -f docker-compose.login.yml --env-file .env up -d
 ```
 
 **3. Start HAProxy + open the login port.** The shipped `haproxy/haproxy.cfg`
@@ -107,11 +131,50 @@ Then point a client at `PUBLIC_IP:6900` — the world appears on world-select.
 
 ---
 
+## Build reference
+
+Background for the build in first-time setup step 2 — nothing here needs running.
+
+**Why it costs ~3 GiB.** The map server does not parallelise: `src/map/skill.cpp`
+`#include`s `skills/skill_factory.cpp`, which pulls all ~1200 skill sources into a
+**single** translation unit, so it is one `g++` process that `-j` cannot split.
+Measured on that one file, on a fast desktop core:
+
+| CXXFLAGS | wall | peak RSS |
+| --- | --- | --- |
+| `-g -O2` (autoconf default) | 52 s | 3.7 GiB |
+| `-O2` (what we pass) | 36 s | 3.1 GiB |
+| `-O1` | 27 s | 2.9 GiB |
+
+On a 4 GB box that one process, plus MariaDB's ~400 MB, does not fit — hence the
+swap file. `docker compose down` before compiling buys back the MariaDB share.
+
+**Build args** (`production/Dockerfile.prod`), all settable with `--build-arg`:
+- `MAKE_JOBS` (default `1`) — compile jobs. Every job beyond the first needs its
+  own headroom on top of the ~3 GiB peak, so 4 GB hosts want `1`–`2`. `up --build`
+  takes no `--build-arg`, which is why step 2 and *Operations* build separately.
+- `BUILDER_CXXFLAGS` (default `-O2`) — no `-g`: autoconf would default to
+  `-g -O2`, costing ~650 MiB and ~45% more wall time for symbols the runtime
+  stage discards. Drop to `-O1` to shave another ~200 MiB.
+- `BUILDER_CONFIGURE` — packetver / renewal mode, pinned in
+  `docker-compose.login.yml`. All worlds share it; changing it means a new image.
+
+**`.dockerignore`** (repo root) cuts the uploaded context from ~800 MB to ~90 MB —
+`.git` alone is ~400 MB, and host build output (a `-g` `map-server` is 90 MB) is
+useless in a musl image. It also keeps `production/` out, so editing an `.env` or
+this file no longer invalidates the `COPY . /rathena` layer and forces a full
+recompile.
+
+---
+
 ## Operations
 
 ```bash
-# Update after a code change (rebuild image, restart everything)
-docker compose -f docker-compose.login.yml --env-file .env up -d --build
+# Update after a code change (rebuild image, restart everything).
+# Separate build step because `up --build` takes no --build-arg, so it would
+# compile with MAKE_JOBS=1 — see "Build reference".
+docker compose -f docker-compose.login.yml --env-file .env build --build-arg MAKE_JOBS=2
+docker compose -f docker-compose.login.yml --env-file .env up -d
 docker compose -f docker-compose.world.yml --env-file .env.world-a up -d
 docker compose -f haproxy/docker-compose.yml up -d
 
