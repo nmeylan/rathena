@@ -86,6 +86,7 @@ if [ "$MODE" = "login" ]; then
     mkdir -p "$HERE/asset-login"
     echo ">> rendering login asset into asset-login/"
     render "$TEMPLATE_DIR/inter_conf.txt" "$HERE/asset-login/inter_conf.txt"
+    render "$TEMPLATE_DIR/login_conf.txt" "$HERE/asset-login/login_conf.txt"
     echo ">> done."
     exit 0
 fi
@@ -118,7 +119,8 @@ fi
 mkdir -p "$CONFIG_DIR"
 
 echo ">> rendering world '$WORLD' assets into $CONFIG_DIR"
-render "$TEMPLATE_DIR/inter_conf.txt" "$CONFIG_DIR/inter_conf.txt"
-render "$TEMPLATE_DIR/char_conf.txt"  "$CONFIG_DIR/char_conf.txt"
-render "$TEMPLATE_DIR/map_conf.txt"   "$CONFIG_DIR/map_conf.txt"
+render "$TEMPLATE_DIR/inter_conf.txt"  "$CONFIG_DIR/inter_conf.txt"
+render "$TEMPLATE_DIR/char_conf.txt"   "$CONFIG_DIR/char_conf.txt"
+render "$TEMPLATE_DIR/map_conf.txt"    "$CONFIG_DIR/map_conf.txt"
+render "$TEMPLATE_DIR/battle_conf.txt" "$CONFIG_DIR/battle_conf.txt"
 echo ">> done. Bring the world up:  docker compose -f docker-compose.world.yml --env-file $WORLD_ENV up -d"
