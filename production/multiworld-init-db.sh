@@ -100,6 +100,16 @@ else
     echo "   loading schema (main.sql)"
     load "$ACCOUNTS_DB" "$SQLDIR/main.sql"
 fi
+# The login server logs to `loginlog`, which lives in logs.sql (a world-log
+# file). The accounts DB only gets main.sql, so create just that one table here
+# — the other logs.sql tables are map-server logs and belong in world DBs.
+if table_exists "$ACCOUNTS_DB" loginlog; then
+    echo "   loginlog table already present"
+else
+    echo "   creating loginlog table (from logs.sql)"
+    awk '/CREATE TABLE IF NOT EXISTS `loginlog`/{f=1} f{print} f&&/;[[:space:]]*$/{exit}' \
+        "$SQLDIR/logs.sql" | mysql "$ACCOUNTS_DB"
+fi
 
 # ---- this world's DB ----
 echo ">> setting up world DB '$WORLD_DB'"
