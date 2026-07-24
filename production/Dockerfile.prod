@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+
+##############################################################################
+# Build stage — full toolchain, thrown away after compile
+##############################################################################
+FROM alpine:3.23 AS build
+
+ARG BUILDER_CONFIGURE="--enable-packetver=20111102 --enable-prere=yes"
+
+RUN apk add --no-cache \
+        git cmake make gcc g++ bash \
+        zlib-dev mariadb-dev linux-headers
+
+WORKDIR /rathena
+COPY . /rathena
+RUN ./configure ${BUILDER_CONFIGURE} && make clean server
+
+##############################################################################
+# Runtime stage — no compiler, no git, non-root, minimal libs
+# (apk set pinned from `ldd` of the actual binaries; mariadb-connector-c
+#  pulls libssl3/libcrypto3, libstdc++ pulls libgcc, musl is in the base)
+##############################################################################
+FROM alpine:3.23
+
+RUN apk add --no-cache libstdc++ zlib mariadb-connector-c ca-certificates \
+ && adduser -D -H -u 10001 rathena
+
+WORKDIR /rathena
+
+# Binaries + the data the servers actually read at startup.
+COPY --from=build --chown=rathena:rathena \
+        /rathena/login-server /rathena/char-server /rathena/map-server ./
+COPY --from=build --chown=rathena:rathena /rathena/conf ./conf
+COPY --from=build --chown=rathena:rathena /rathena/db   ./db
+COPY --from=build --chown=rathena:rathena /rathena/npc  ./npc
+
+# log/ is the only path the servers write to at runtime; back it with a
+# volume in compose since the root filesystem is mounted read-only.
+RUN install -d -o rathena -g rathena /rathena/log
+
+USER rathena
+
+# Sensitive import confs (DB creds) are NOT baked in — mount them read-only
+# at runtime (compose secret / bind mount to /rathena/conf/import).

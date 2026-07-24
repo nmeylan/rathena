@@ -1,0 +1,55 @@
+# One world = char-server + map-server + its own database, sharing the login
+# stack's accounts. Parametrized by an env file so each world is a copy of a
+# single .env.
+#
+# Start world A:  docker compose -f docker-compose.world.yml --env-file .env.world-a up -d
+# Start world B:  docker compose -f docker-compose.world.yml --env-file .env.world-b up -d
+#
+# Required env vars (see .env.world-a.example):
+#   WORLD       short id, e.g. a / b        -> container names + project name
+#   CONFIG_DIR  ./asset-world-a             -> mounted at /rathena/conf/import
+name: rathena-world-${WORLD}
+
+x-server-common: &server-common
+    image: "rathena:prod"          # built by the login stack; shared code
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 512
+    mem_limit: 1g
+    volumes:
+        - "${CONFIG_DIR:?set CONFIG_DIR in the world env file}:/rathena/conf/import:ro"
+        - "log:/rathena/log"
+    logging:
+        driver: "json-file"
+        options: { max-size: "20m", max-file: "5" }
+    networks:
+        - shared
+    # No `ports:` — HAProxy publishes this world's char/map ports.
+
+services:
+    char:
+        <<: *server-common
+        container_name: "rathena-world-${WORLD}-char"
+        command: ["/rathena/char-server"]
+
+    map:
+        <<: *server-common
+        container_name: "rathena-world-${WORLD}-map"
+        command: ["/rathena/map-server"]
+        depends_on:
+            - char
+
+volumes:
+    log:
+
+# All containers live on the login stack's network so char can reach `login`
+# and `db`, and HAProxy can reach char/map. Cross-world references use unique
+# container names (rathena-world-a-char, …), so the duplicated `char`/`map`
+# service aliases are never queried.
+networks:
+    shared:
+        external: true
+        name: rathena-nmey_default

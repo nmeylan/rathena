@@ -1,0 +1,63 @@
+# Shared-login stack: the single login-server + the MariaDB that hosts every
+# database (accounts + one per world). This stack OWNS the shared network
+# `rathena-nmey_default`; the world stacks and HAProxy join it as external.
+#
+# Start:  docker compose -f docker-compose.login.yml --env-file .env up -d --build
+name: rathena-nmey
+
+services:
+    db:
+        image: "mariadb:noble"
+        container_name: "rathena-db"
+        restart: unless-stopped
+        # No public port. Uncomment for host-only admin access:
+        # ports: ["127.0.0.1:3306:3306"]
+        volumes:
+            - "rathenadb:/var/lib/mysql"
+        environment:
+            MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD in .env}
+            MARIADB_DATABASE: ${DB_NAME:-accounts}
+            MARIADB_USER: ${DB_USER:-ragnarok}
+            MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+        security_opt:
+            - "no-new-privileges:true"
+        healthcheck:
+            test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+            interval: 5s
+            timeout: 5s
+            retries: 30
+
+    login:
+        image: "rathena:prod"
+        build:
+            context: ..
+            dockerfile: production/Dockerfile.prod
+            args:
+                BUILDER_CONFIGURE: "--enable-packetver=20111102 --enable-prere=yes"
+        container_name: "rathena-login"
+        command: ["/rathena/login-server"]
+        restart: unless-stopped
+        read_only: true
+        tmpfs: [/tmp]
+        cap_drop: [ALL]
+        security_opt: ["no-new-privileges:true"]
+        pids_limit: 512
+        mem_limit: 512m
+        volumes:
+            - "./asset-login:/rathena/conf/import:ro"
+            - "login-log:/rathena/log"
+        logging:
+            driver: "json-file"
+            options: { max-size: "20m", max-file: "5" }
+        depends_on:
+            db: { condition: service_healthy }
+        # No `ports:` — HAProxy publishes 6900.
+
+volumes:
+    rathenadb:
+    login-log:
+
+# Created by this stack; world stacks + HAProxy attach to it as external.
+networks:
+    default:
+        name: rathena-nmey_default

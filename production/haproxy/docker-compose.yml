@@ -1,0 +1,21 @@
+name: rathena-proxy
+
+services:
+    haproxy:
+        image: "haproxy:lts-alpine"
+        container_name: "rathena-haproxy"
+        restart: unless-stopped
+        ports:
+            - "6900:6900"   # login (single, shared by all worlds)
+            # >>> world-ports (managed by ../new-world.sh) -- do not edit inside
+            # <<< world-ports
+        volumes:
+            - "./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
+        networks:
+            - shared
+
+# Joins the login stack's network so it can reach every container by name.
+networks:
+    shared:
+        external: true
+        name: rathena-nmey_default
