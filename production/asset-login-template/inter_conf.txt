@@ -13,3 +13,10 @@ ipban_db_ip: db
 ipban_db_id: ${DB_USER}
 ipban_db_pw: ${DB_PASSWORD}
 ipban_db_db: ${ACCOUNTS_DB}
+
+// login-log table -> same shared DB. Without these it falls back to the
+// compiled default 127.0.0.1 (the container itself) and fails to connect.
+log_db_ip: db
+log_db_id: ${DB_USER}
+log_db_pw: ${DB_PASSWORD}
+log_db_db: ${ACCOUNTS_DB}
