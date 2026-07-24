@@ -122,14 +122,22 @@ else
     load "$WORLD_DB" "$SQLDIR/logs.sql"
 fi
 
-# ---- interserver (sex='S') account: account_id is this world's login slot ----
+# ---- interserver (sex='S') account: account_id IS this world's login slot ----
+# The login server indexes ch_server[account_id] and requires account_id < 5
+# (see loginclif.cpp), so ACCOUNT_ID must be 0-4 (enforced above). But
+# `login.account_id` is AUTO_INCREMENT from 2000000, so a literal 0 would be
+# hijacked to 2000000 (>= 5) and the char server would be REFUSED. NO_AUTO_
+# VALUE_ON_ZERO makes 0 insert as 0. We also drop any stale row carrying this
+# userid at a different account_id, so the login userid lookup stays unique.
 echo ">> registering interserver account: account_id=$ACCOUNT_ID userid='$SERVER_USERID'"
 existing=$(mysql -N -B "$ACCOUNTS_DB" -e "SELECT userid FROM login WHERE account_id=$ACCOUNT_ID;" || true)
 if [ -n "$existing" ] && [ "$existing" != "$SERVER_USERID" ]; then
     echo "   WARNING: slot $ACCOUNT_ID currently belongs to '$existing'; overwriting with '$SERVER_USERID'" >&2
 fi
 mysql "$ACCOUNTS_DB" -e \
-    "REPLACE INTO login (account_id,userid,user_pass,sex,email)
+    "SET SESSION sql_mode=CONCAT(@@sql_mode,',NO_AUTO_VALUE_ON_ZERO');
+     DELETE FROM login WHERE userid='$SERVER_USERID' AND account_id<>$ACCOUNT_ID;
+     REPLACE INTO login (account_id,userid,user_pass,sex,email)
      VALUES ($ACCOUNT_ID,'$SERVER_USERID','$SERVER_PASSWORD','S','athena@athena.com');"
 
 echo ">> done: world DB '$WORLD_DB', login slot $ACCOUNT_ID -> '$SERVER_USERID'."
