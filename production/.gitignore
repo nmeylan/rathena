@@ -7,5 +7,6 @@
 # dirs + env). They hold the DB password / interserver creds — regenerate,
 # don't commit. Only the templates are tracked.
 asset-login/inter_conf.txt
+asset-login/login_conf.txt
 asset-world-*/
 !asset-world-template/
