@@ -13,9 +13,12 @@
 # Idempotent: if .env.world-<id> already exists it does nothing (exit 0) unless
 # --force is given.
 #
-# It also upserts this world's HAProxy frontend/backend block into
-# haproxy/haproxy.cfg and its published ports into haproxy/docker-compose.yml
-# (idempotent, marker-delimited) unless --no-haproxy is given.
+# It then runs render-haproxy.sh, which regenerates haproxy/haproxy.cfg and
+# haproxy/docker-compose.yml from ALL .env.world-* files, unless --no-haproxy is
+# given. Those two outputs are generated and gitignored; only the .template files
+# are tracked. Regenerating from every env file (rather than editing this world's
+# block in place) is what keeps a `git pull` on the server from wiping the other
+# worlds' registrations.
 #
 # Press Enter at any prompt to accept the [default]. Defaults for slot/ports are
 # derived from the highest ACCOUNT_ID already in use, so worlds don't collide.
@@ -128,66 +131,14 @@ EOF
 echo
 echo ">> wrote $ENV_FILE"
 
-# ---- HAProxy: upsert this world's frontend/backend block + published ports ----
-CFG="haproxy/haproxy.cfg"
-COMPOSE="haproxy/docker-compose.yml"
-
-upsert_haproxy_cfg() {
-    [ -f "$CFG" ] || { echo "   haproxy.cfg: not found — skipped"; return; }
-    local start="# >>> world $WORLD (managed by new-world.sh)"
-    local end="# <<< world $WORLD"
-    local block
-    printf -v block '%s\n' \
-        "$start" \
-        "frontend ${WORLD}_char" \
-        "    bind :$CHAR_PORT" \
-        "    tcp-request connection track-sc0 src table st_flood" \
-        "    tcp-request connection reject if { sc0_conn_cur gt 50 }" \
-        "    tcp-request connection reject if { sc0_conn_rate gt 100 }" \
-        "    default_backend ${WORLD}_char_bk" \
-        "frontend ${WORLD}_map" \
-        "    bind :$MAP_PORT" \
-        "    tcp-request connection track-sc0 src table st_flood" \
-        "    tcp-request connection reject if { sc0_conn_cur gt 50 }" \
-        "    tcp-request connection reject if { sc0_conn_rate gt 100 }" \
-        "    default_backend ${WORLD}_map_bk" \
-        "backend ${WORLD}_char_bk" \
-        "    server char rathena-world-${WORLD}-char:$CHAR_PORT check resolvers docker init-addr last,libc,none" \
-        "backend ${WORLD}_map_bk" \
-        "    server map rathena-world-${WORLD}-map:$MAP_PORT check resolvers docker init-addr last,libc,none" \
-        "$end"
-    if grep -qxF "$start" "$CFG"; then
-        awk -v s="$start" -v e="$end" -v blk="$block" '
-            $0==s { printf "%s", blk; skip=1; next }
-            skip  { if ($0==e) skip=0; next }
-                  { print }
-        ' "$CFG" > "$CFG.tmp" && mv "$CFG.tmp" "$CFG"
-        echo "   haproxy.cfg: updated world $WORLD block ($CHAR_PORT/$MAP_PORT)"
-    else
-        printf '\n%s' "$block" >> "$CFG"
-        echo "   haproxy.cfg: added world $WORLD block ($CHAR_PORT/$MAP_PORT)"
-    fi
-}
-
-upsert_haproxy_ports() {
-    [ -f "$COMPOSE" ] || { echo "   haproxy compose: not found — skipped"; return; }
-    grep -q '# >>> world-ports' "$COMPOSE" \
-        || { echo "   haproxy compose: no 'world-ports' region — skipped"; return; }
-    local ind="            "                 # 12 spaces, matches the ports list
-    local lc="${ind}- \"$CHAR_PORT:$CHAR_PORT\"   # world $WORLD"
-    local lm="${ind}- \"$MAP_PORT:$MAP_PORT\"   # world $WORLD"
-    awk -v lc="$lc" -v lm="$lm" -v tag="# world $WORLD" '
-        /# >>> world-ports/            { print; inreg=1; next }
-        inreg && /# <<< world-ports/   { print lc; print lm; print; inreg=0; next }
-        inreg                          { if ($0 ~ (tag "$")) next; print; next }
-                                       { print }
-    ' "$COMPOSE" > "$COMPOSE.tmp" && mv "$COMPOSE.tmp" "$COMPOSE"
-    echo "   haproxy compose: published ports $CHAR_PORT/$MAP_PORT for world $WORLD"
-}
-
+# ---- HAProxy: regenerate from every world env file ----
+# NOT an in-place upsert. haproxy.cfg / haproxy/docker-compose.yml are generated
+# from the .env.world-* files and gitignored; only the .template files are
+# tracked. See the comment at the top of render-haproxy.sh for why: the old
+# accumulate-in-place approach made a git-tracked file hold runtime state, so a
+# pull on the server wiped every previously registered world.
 if [ "$DO_HAPROXY" -eq 1 ]; then
-    upsert_haproxy_cfg
-    upsert_haproxy_ports
+    ./render-haproxy.sh          # cwd is this script's dir (see cd at the top)
 fi
 
 echo "   next:"

@@ -7,8 +7,7 @@ services:
         restart: unless-stopped
         ports:
             - "6900:6900"   # login (single, shared by all worlds)
-            # >>> world-ports (managed by ../new-world.sh) -- do not edit inside
-            # <<< world-ports
+            # >>> WORLD PORTS (generated — do not edit below this line)
         volumes:
             - "./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
         networks:

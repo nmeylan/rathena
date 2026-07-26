@@ -72,14 +72,19 @@ Then start db + login (with option A, this is the only command you run here):
 docker compose -f docker-compose.login.yml --env-file .env up -d
 ```
 
-**3. Start HAProxy + open the login port.** The shipped `haproxy/haproxy.cfg`
-has only the `login` frontend; per-world blocks are added by `new-world.sh`
-(next section). Backends for not-yet-running worlds show as down until up.
+**3. Start HAProxy + open the login port.** `haproxy/haproxy.cfg` and
+`haproxy/docker-compose.yml` are **generated** by `render-haproxy.sh` from the
+`.env.world-*` files — only the `.template` files are tracked. Generate them
+first (needs at least one world, so on a brand-new install do this after step 1
+of the next section):
 
 ```bash
+./render-haproxy.sh                             # -> haproxy/{haproxy.cfg,docker-compose.yml}
 docker compose -f haproxy/docker-compose.yml up -d
 ufw allow 6900/tcp                              # + your SSH port
 ```
+
+Backends for not-yet-running worlds show as down until those worlds are up.
 
 Now add at least one world ↓ (the DB is created on the first world's init).
 
@@ -91,9 +96,9 @@ Nothing to hand-edit — the script also wires up HAProxy. Example: world `a`.
 
 **1. Generate its env file + HAProxy config.** Accepts defaults (next free slot,
 `world_a`, `s1`, ports `6121/5121`); press Enter through, or override at the
-prompts. It writes `.env.world-a` **and** upserts world `a`'s block into
-`haproxy/haproxy.cfg` + its ports into `haproxy/docker-compose.yml` (idempotent;
-pass `--no-haproxy` to skip):
+prompts. It writes `.env.world-a`, then runs `render-haproxy.sh` to regenerate
+`haproxy/haproxy.cfg` + `haproxy/docker-compose.yml` from **every**
+`.env.world-*` file (pass `--no-haproxy` to skip):
 
 ```bash
 ./new-world.sh a
@@ -129,6 +134,49 @@ docker compose -f docker-compose.login.yml logs login | grep -i "char-server"
 ```
 
 Then point a client at `PUBLIC_IP:6900` — the world appears on world-select.
+
+---
+
+## HAProxy config is generated, not accumulated
+
+`haproxy/haproxy.cfg` and `haproxy/docker-compose.yml` are derived in full from
+the `.env.world-*` files by `render-haproxy.sh`. Both are **gitignored**; only
+`haproxy/haproxy.cfg.template` and `haproxy/docker-compose.yml.template` are
+tracked.
+
+```bash
+./render-haproxy.sh                              # all worlds
+./render-haproxy.sh .env.world-a .env.world-b    # only these
+docker compose -f haproxy/docker-compose.yml up -d
+```
+
+It is idempotent — the output is a pure function of the env files present, so
+running it twice changes nothing, and running it after a `git pull` restores
+every world.
+
+**Why it works this way.** These two files were previously tracked in git *and*
+edited in place, one marker-delimited block appended per world by
+`new-world.sh`. That made a versioned file hold runtime state: the committed copy
+had no worlds, the server's copy had all of them, and they could only diverge.
+Any `git pull`, `checkout` or `reset` on the server replaced the accumulated
+config with the world-less committed version, silently deregistering every world
+— which then looks like "connection refused" on a port that used to work, while
+login still succeeds. Deriving the whole file from the env files removes the
+state, so there is nothing for a pull to clobber.
+
+Consequences worth knowing:
+
+- **Adding or removing a world is just adding or removing its env file**, then
+  re-rendering. There is no leftover block to clean up.
+- **Never edit `haproxy/haproxy.cfg` directly** — it is overwritten. Settings that
+  apply to all worlds (timeouts, flood limits, the login frontend) go in
+  `haproxy.cfg.template`. Flood limits can also be overridden per run with the
+  `MAX_CONN_CUR` / `MAX_CONN_RATE` environment variables.
+- The renderer **rejects duplicate ports** across worlds, which would otherwise
+  silently break whichever world bound second.
+- After rendering, `docker compose -f haproxy/docker-compose.yml up -d` is
+  required to actually bind new ports, plus `ufw allow` for them — the renderer
+  prints the exact `ufw` line.
 
 ---
 

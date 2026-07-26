@@ -59,7 +59,11 @@ backend login_bk
     server login rathena-login:6900 check resolvers docker init-addr last,libc,none
 
 #=======================================================================
-# WORLDS — one marker-delimited block per world, managed by ../new-world.sh.
-# Do NOT edit inside the "# >>> world X" / "# <<< world X" markers; change the
-# world's .env file and re-run new-world.sh. Blocks are appended below.
+# WORLDS — generated below from every .env.world-* file by ../render-haproxy.sh.
+#
+# This is the TEMPLATE. Edit it for anything that applies to all worlds; the
+# generated haproxy.cfg next to it is gitignored and rebuilt from scratch on
+# every run, so never edit that. Per-world values (ports, container names) come
+# from the world's env file — change it there and re-render.
 #=======================================================================
+# >>> WORLD BLOCKS (generated — do not edit below this line)

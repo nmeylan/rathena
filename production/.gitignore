@@ -13,3 +13,10 @@ asset-world-*/
 
 # Python bytecode from gen-level-tables.py
 __pycache__/
+
+# GENERATED HAProxy config (render-haproxy.sh, from the .env.world-* files).
+# These are runtime state: which worlds exist differs per deployment, so tracking
+# them guarantees local/server divergence and a `git pull` would wipe the
+# server's registered worlds. Only the .template files are tracked.
+haproxy/haproxy.cfg
+haproxy/docker-compose.yml
