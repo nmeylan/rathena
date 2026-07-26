@@ -12,6 +12,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LOGIN_TEMPLATE_DIR="$HERE/asset-login-template"
 WORLD_TEMPLATE_DIR="$HERE/asset-world-template"
+WORLD_NPC_DIR="$HERE/world-npc"
 LOGIN_ENV=".env"
 WORLD_ENV=""
 MODE=""
@@ -61,6 +62,7 @@ load_env "$LOGIN_ENV"
 
 # ---- render helper: literal substitution of the tokens in $TOKENS ----
 render() { # <template file> <output file>
+    [ -f "$1" ] || { echo "error: template not found: $1" >&2; exit 1; }
     local content; content="$(cat "$1")"
     local v
     for v in "${TOKENS[@]}"; do
@@ -123,4 +125,28 @@ render "$TEMPLATE_DIR/inter_conf.txt"  "$CONFIG_DIR/inter_conf.txt"
 render "$TEMPLATE_DIR/char_conf.txt"   "$CONFIG_DIR/char_conf.txt"
 render "$TEMPLATE_DIR/map_conf.txt"    "$CONFIG_DIR/map_conf.txt"
 render "$TEMPLATE_DIR/battle_conf.txt" "$CONFIG_DIR/battle_conf.txt"
+
+# ---- per-world NPC list ----
+# Copied verbatim (NOT through render(): NPC scripts are not templates, and a
+# literal '${' in one would trip the unresolved-token check). Lands at
+# /rathena/conf/import/npc/, which npc/scripts_custom.conf imports as the last
+# entry of the script chain. Own subdir so it can be wiped without touching the
+# rendered *_conf.txt, and so a stray file here can never shadow them.
+NPC_SRC="$WORLD_NPC_DIR/$WORLD"
+NPC_SRC_LABEL="world-npc/$WORLD"
+if [ ! -d "$NPC_SRC" ]; then
+    NPC_SRC="$WORLD_NPC_DIR/_default"
+    NPC_SRC_LABEL="world-npc/_default (no world-npc/$WORLD — this world loads no extra NPCs)"
+fi
+[ -f "$NPC_SRC/scripts_world.conf" ] || {
+    echo "error: $NPC_SRC/scripts_world.conf not found — the server errors on a" >&2
+    echo "       missing import, so this file must exist (may be comment-only)." >&2
+    exit 1
+}
+rm -rf "$CONFIG_DIR/npc"
+mkdir -p "$CONFIG_DIR/npc"
+cp -a "$NPC_SRC"/. "$CONFIG_DIR/npc"/
+echo "   wrote $CONFIG_DIR/npc/ from $NPC_SRC_LABEL"
+
 echo ">> done. Bring the world up:  docker compose -f docker-compose.world.yml --env-file $WORLD_ENV up -d"
+echo "   (already running? \`@reloadscript\` in-game picks up NPC list changes.)"

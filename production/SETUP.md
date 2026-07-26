@@ -99,7 +99,8 @@ pass `--no-haproxy` to skip):
 ./new-world.sh a
 ```
 
-**2. Render its config** (`asset-world-a/{inter,char,map}_conf.txt`):
+**2. Render its config** (`asset-world-a/{inter,char,map,battle}_conf.txt` plus
+`asset-world-a/npc/`, see [Per-world NPCs](#per-world-npcs)):
 
 ```bash
 ./render-assets.sh --env-file .env.world-a
@@ -128,6 +129,69 @@ docker compose -f docker-compose.login.yml logs login | grep -i "char-server"
 ```
 
 Then point a client at `PUBLIC_IP:6900` — the world appears on world-select.
+
+---
+
+## Per-world NPCs
+
+All worlds run the same `rathena:prod` image, so every world *has* every script
+under `npc/`. What differs is which ones each world **loads**.
+
+Each world already bind-mounts `asset-world-<id>/` at `/rathena/conf/import`, so
+`conf/import/npc/scripts_world.conf` names a different file in every world.
+`npc/scripts_custom.conf` ends by importing exactly that path, making it the
+last entry in the script chain — so a world can both add and remove relative to
+everything above it. Sources are tracked in `production/world-npc/<id>/` and
+copied into the mount by `render-assets.sh`; worlds with no such directory fall
+back to `world-npc/_default/` and load nothing extra.
+
+Give world `a` its own NPCs:
+
+```bash
+mkdir -p world-npc/a
+cp world-npc/_default/scripts_world.conf world-npc/a/
+$EDITOR world-npc/a/scripts_world.conf
+./render-assets.sh --env-file .env.world-a
+```
+
+Only `npc:`, `delnpc:`, `import:` and `//` comments are valid in that file —
+anything else logs `Unknown setting`. Paths are relative to `/rathena`:
+
+```
+// Enable a script that ships in the image but is off for everyone else.
+npc: npc/custom/etc/lottery.txt
+
+// Drop a script that npc/scripts_custom.conf enables for every world.
+delnpc: npc/custom/etc/mvp_arena.txt
+
+// A script that lives in world-npc/a/ alongside this file.
+npc: conf/import/npc/pvp_arena.txt
+```
+
+Then restart the world, or just `@reloadscript` in-game — the chain is re-read.
+
+**Put actively-edited world scripts in `world-npc/<id>/`, not `npc/`.** They
+arrive via the bind mount, so a change needs only `@reloadscript`. Anything
+under `npc/` is inside `COPY . /rathena`, so editing it invalidates that layer
+and forces a **full map-server recompile** (the ~3 GiB `skill.cpp` unity build —
+see [Build reference](#build-reference)). Keep `npc/` for stable shared scripts.
+
+**Do not** put per-world `npc:` lines in `conf/import/map_conf.txt` instead.
+`map_conf.txt` does accept them at boot (`src/map/map.cpp:4170`), but
+`@reloadscript` calls `map_reloadnpc(true)`, which clears the list and re-reads
+*only* the `scripts_main.conf` chain — those NPCs vanish on the first reload.
+
+For *same NPC, different behavior* rather than present/absent, one script that
+branches is simpler than two files: each world has its own database, so a
+`$world$` global set in an `OnInit` from that world's list is enough to gate on.
+
+**Heads-up on the mount:** it replaces `/rathena/conf/import` *entirely*, so the
+image's own `conf/import/` files (`groups.yml`, `atcommands.yml`,
+`inter_server.yml`, `log_conf.txt`, …) are invisible inside a world container —
+they log a "failed to open" error at boot and their settings do not apply. Today
+those are the untouched `import-tmpl` defaults, so nothing is lost; if you ever
+add a custom group or atcommand there, copy it into `asset-world-template/` (or
+each world's mount) or it will silently have no effect.
 
 ---
 
@@ -197,6 +261,18 @@ docker compose -f docker-compose.login.yml down
 re-run `./render-assets.sh --env-file .env.world-<id>`, then restart that world.
 **Change DB creds:** update `.env`, re-render everything (`./render-assets.sh
 --login` and each world), restart.
+**Change a world's NPCs:** edit `world-npc/<id>/`, re-render, then
+`@reloadscript` — see [Per-world NPCs](#per-world-npcs). No image rebuild.
+
+**Local (non-Docker) dev server:** `npc/scripts_custom.conf` imports
+`conf/import/npc/scripts_world.conf`, which in production comes from the world's
+bind mount. A local run has no mount, so create the stub once (`conf/import` is
+gitignored, so this stays local) or map-server logs a missing-import error on
+every boot:
+
+```bash
+mkdir -p conf/import/npc && touch conf/import/npc/scripts_world.conf
+```
 
 ---
 

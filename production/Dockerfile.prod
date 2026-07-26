@@ -56,6 +56,19 @@ COPY --from=build --chown=rathena:rathena /rathena/npc  ./npc
 # volume in compose since the root filesystem is mounted read-only.
 RUN install -d -o rathena -g rathena /rathena/log
 
+# Multiworld hook target. npc/scripts_custom.conf ends with
+# `import: conf/import/npc/scripts_world.conf`, and rAthena treats a missing
+# import as an error (non-fatal, but it logs on every boot). In production each
+# world's bind mount replaces all of conf/import and brings its own copy —
+# rendered by production/render-assets.sh from production/world-npc/<id>/. This
+# stub only covers running the image with no mount at all, e.g. a smoke test.
+RUN install -d -o rathena -g rathena /rathena/conf/import/npc \
+ && printf '%s\n' \
+      '// Stub — overridden by the per-world bind mount in production.' \
+      '// See production/SETUP.md, "Per-world NPCs".' \
+      > /rathena/conf/import/npc/scripts_world.conf \
+ && chown rathena:rathena /rathena/conf/import/npc/scripts_world.conf
+
 USER rathena
 
 # Sensitive import confs (DB creds) are NOT baked in — mount them read-only
