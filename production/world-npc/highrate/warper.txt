@@ -98,8 +98,9 @@ menu	"Prontera",T1, "Alberta",T2, "Aldebaran",T3, "Amatsu",T4, "Ayothaya",T5,
 	"Brasilis",T6, "Comodo",T7, "Dewata",T33, "Eclage",T34, "Einbech",T8,
 	"Einbroch",T9, "El Dicastes",T10, "Geffen",T11, "Gonryun",T12, "Hugel",T13,
 	"Izlude",T14, "Jawaii",T15, "Lighthalzen",T16, "Louyang",T17, "Lutie",T18,
-	 "Morroc",T22, "Moscovia",T23, "Nameless Island",T24,
-	"Niflheim",T25, "Payon",T26, "Rachel",T27,  "Thor Camp",T29,
+	"Malangdo",T35, "Malaya",T36, "Manuk",T19, "Midgarts Expedition Camp",T20,
+	"Mora",T21, "Morroc",T22, "Moscovia",T23, "Nameless Island",T24,
+	"Niflheim",T25, "Payon",T26, "Rachel",T27, "Splendide",T28, "Thor Camp",T29,
 	"Umbala",T30, "Veins",T31, "Yuno",T32;
 
 -	script	Warp Agent#01::warpra	859,{
@@ -124,6 +125,7 @@ T17: Go("louyang",217,100);
 T18: Go("xmas",147,134);
 T19: Go("manuk",260,175);
 T20: Go("mid_camp",210,288);
+T21: Go("mora",111,97);
 T22: Go("morocc",156,93);
 T23: Go("moscovia",219,193);
 T24: Go("nameless_n",256,215);
@@ -135,20 +137,24 @@ T29: Go("thor_camp",246,68);
 T30: Go("umbala",127,128);
 T31: Go("veins",216,123);
 T32: Go("yuno",157,51);
+T33: Go("dewata",199,179);
+T34: Go("eclage",111,39);
+T35: Go("malangdo",224,184);
+T36: Go("malaya",212,206);
 
 	callfunc "F_ClearGarbage"; //Clear outdated, unused variables
 // --------------------------------------------------
 	Fields:
 // --------------------------------------------------
-menu	"Amatsu Fields",F1, "Ayothaya Fields",F2,
-	"Brasilis Fields",F4, "Comodo Fields",F5,
+menu	"Amatsu Fields",F1, "Ayothaya Fields",F2, "Bifrost Fields", F3,
+	"Brasilis Fields",F4, "Comodo Fields",F5, "Dewata Fields",F26,
 	"Eclage Fields",F27, "Einbroch Fields",F6, "El Dicastes Fields",F7,
 	"Geffen Fields",F8, "Gonryun Fields",F9, "Hugel Fields",F10,
 	"Lighthalzen Fields",F11, "Louyang Field",F12, "Lutie Field",F13,
-	"Mjolnir Fields",F15,
+	"Malaya Fields",F28, "Manuk Fields",F14, "Mjolnir Fields",F15,
 	"Moscovia Fields",F16, "Niflheim Fields",F17, "Payon Forests",F18,
 	"Prontera Fields",F19, "Rachel Fields",F20, "Sograt Deserts",F21,
-	"Umbala Fields",F23, "Veins Fields",F24,
+	"Splendide Fields",F22, "Umbala Fields",F23, "Veins Fields",F24,
 	"Yuno Fields",F25;
 
 	mes "[Warp Agent]";
@@ -566,7 +572,13 @@ brasilis,200,157,6	duplicate(warpra)	Warp Agent#26	859
 rachel,127,111,6	duplicate(warpra)	Warp Agent#27	859
 moscovia,222,220,6	duplicate(warpra)	Warp Agent#28	859
 mid_camp,180,246,6	duplicate(warpra)	Warp Agent#29	859
+dicastes01,194,188,6	duplicate(warpra)	Warp Agent#30	859
+dewata,194,178,6	duplicate(warpra)	Warp Agent#31	859
+malangdo,220,188,6	duplicate(warpra)	Warp Agent#32	859
 niflheim,32,161,4	duplicate(warpra)	Warp Agent#33	859
+malaya,210,205,4	duplicate(warpra)	Warp Agent#34	859
+mora,110,100,4	duplicate(warpra)	Warp Agent#35	859
+eclage,107,37,4	duplicate(warpra)	Warp Agent#36	859
 // --------------------------------------------------
 	Special:
 // --------------------------------------------------
@@ -650,3 +662,7 @@ nameless_n,259,213,4	duplicate(Warper)	Warper#40	811
 niflheim,205,179,4	duplicate(Warper)	Warper#41	811
 thor_camp,249,76,4	duplicate(Warper)	Warper#42	811
 veins,214,123,4	duplicate(Warper)	Warper#43	811
+dewata,194,178,6	duplicate(Warper)	Warper#44	811
+eclage,107,37,4	duplicate(Warper)	Warper#45	811
+malaya,210,205,4	duplicate(Warper)	Warper#46	811
+malangdo,220,188,6	duplicate(Warper)	Warper#47	811
