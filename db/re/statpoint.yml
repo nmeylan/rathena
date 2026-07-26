@@ -657,3 +657,85 @@ Body:
   - Level: 275
     Points: 4099
     TraitPoints: 285
+# Levels 276-300: added when MAX_LEVEL was raised from 275 to 300.
+# PlayerStatPointDatabase::loadingFinished iterates to MAX_LEVEL in every world and
+# logs an error per missing level, so these must exist. Values are exactly what its
+# auto-fill formula produces (verified against the shipped 201-275 rows), so this
+# changes no behavior - it only keeps the boot log clean.
+# NOTE: Points is CUMULATIVE and flat above level 200, so these levels grant ZERO
+# stat points. A world that wants real points past 200 overrides db/import/statpoint.yml.
+  - Level: 276
+    Points: 4099
+    TraitPoints: 288
+  - Level: 277
+    Points: 4099
+    TraitPoints: 291
+  - Level: 278
+    Points: 4099
+    TraitPoints: 294
+  - Level: 279
+    Points: 4099
+    TraitPoints: 297
+  - Level: 280
+    Points: 4099
+    TraitPoints: 304
+  - Level: 281
+    Points: 4099
+    TraitPoints: 307
+  - Level: 282
+    Points: 4099
+    TraitPoints: 310
+  - Level: 283
+    Points: 4099
+    TraitPoints: 313
+  - Level: 284
+    Points: 4099
+    TraitPoints: 316
+  - Level: 285
+    Points: 4099
+    TraitPoints: 323
+  - Level: 286
+    Points: 4099
+    TraitPoints: 326
+  - Level: 287
+    Points: 4099
+    TraitPoints: 329
+  - Level: 288
+    Points: 4099
+    TraitPoints: 332
+  - Level: 289
+    Points: 4099
+    TraitPoints: 335
+  - Level: 290
+    Points: 4099
+    TraitPoints: 342
+  - Level: 291
+    Points: 4099
+    TraitPoints: 345
+  - Level: 292
+    Points: 4099
+    TraitPoints: 348
+  - Level: 293
+    Points: 4099
+    TraitPoints: 351
+  - Level: 294
+    Points: 4099
+    TraitPoints: 354
+  - Level: 295
+    Points: 4099
+    TraitPoints: 361
+  - Level: 296
+    Points: 4099
+    TraitPoints: 364
+  - Level: 297
+    Points: 4099
+    TraitPoints: 367
+  - Level: 298
+    Points: 4099
+    TraitPoints: 370
+  - Level: 299
+    Points: 4099
+    TraitPoints: 373
+  - Level: 300
+    Points: 4099
+    TraitPoints: 380

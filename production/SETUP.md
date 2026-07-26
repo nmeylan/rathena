@@ -132,6 +132,97 @@ Then point a client at `PUBLIC_IP:6900` — the world appears on world-select.
 
 ---
 
+## Per-world level cap
+
+`world-highrate` runs base level 300; every other world stays at 99, on the same
+image.
+
+**The compile-time part is shared.** `MAX_LEVEL` (`src/map/map.hpp:78`) is
+`300` — raised from rAthena's default 275. It is a ceiling for *every* world on
+`rathena:prod`; changing it means rebuilding the image. What differs per world is
+data.
+
+**The per-world part is data.** Every db Footer import chain ends with
+`db/import/<file>.yml` ("Finally, import custom information"), so that directory
+is the override point, and each world bind-mounts its own at
+`/rathena/db/import`. Two files decide the cap:
+
+- `job_stats.yml` — `MaxBaseLevel` plus `BaseExp` rows. A level with no `BaseExp`
+  row cannot be left: `pc_nextbaseexp` returns 0 and `pc_checkbaselevelup` bails
+  on `!next`. This, not `MAX_LEVEL`, is what actually holds the other worlds at
+  99. `MaxBaseLevel` must be in the **same node** as the new rows — the parser
+  reads it first and skips any `BaseExp` row above it (`src/map/pc.cpp:14053`).
+- `statpoint.yml` — `Points` is **cumulative**, and the stock pre-renewal table
+  is flat at 4545 from level 200 up, so `pc_gets_status_point` (`next - current`)
+  returns **0** for every level past 200. Without an override a raised cap grants
+  no stat points.
+
+Generate both with the script rather than by hand — it reads the stock tables for
+its anchors, so it cannot drift from `db/pre-re/*.yml`:
+
+```bash
+./gen-level-tables.py --world highrate --max-level 300   # --dry-run to preview
+./render-assets.sh --env-file .env.world-highrate
+```
+
+### Stat caps
+
+Set `MAX_PARAMETER=200` in `.env.world-highrate`. Without it the cap stays 99,
+and since it costs 3768 points to take all six stats to 99 while the stock table
+hands out 4545 by level 200, stats saturate at **base level 181** — every level
+past that is cosmetic no matter how high the level cap goes.
+
+There are **nine** parameter caps, applied per class family by
+`JobDatabase::loadingFinished` (`src/map/pc.cpp:14338`); `pc_maxparameter` then
+reads `job->max_param[]`, which those defaults fill in. Three are reachable in
+pre-renewal, and `battle_conf.txt` renders all three:
+
+| token | stock | applies to |
+| --- | --- | --- |
+| `MAX_PARAMETER` | 99 | normal 1st/2nd jobs, plus Ninja / Gunslinger / Star Gladiator / Soul Linker |
+| `MAX_TRANS_PARAMETER` | 99 | transcendent (`JOBL_UPPER`) — Lord Knight, High Priest, … |
+| `MAX_BABY_PARAMETER` | 80 | baby jobs |
+
+`MAX_TRANS_PARAMETER` defaults to whatever `MAX_PARAMETER` is set to, because
+setting only `max_parameter` would leave the transcendent jobs — the actual
+pre-renewal endgame — capped at 99. The remaining six
+(third / fourth / extended / summoner / trait) are renewal-only here.
+
+### Allocation cost
+
+`PC_STATUS_POINT_COST` (`src/map/pc.cpp`) has a second branch above 99: cost
+grows by 4 every 5 points instead of 1 every 10, so `low=150` costs 51 instead of
+16 and `low=199` costs 87 instead of 21. The branch is continuous at the boundary
+(99 and 100 both cost 11) and **sub-100 is bit-for-bit stock**, so worlds capped
+at 99 can never reach it and their allocation costs are unchanged. It is
+compile-time, hence shared by every world on the image — which is exactly why the
+split is at 100.
+
+Consequence at cap 200: one stat costs 5539 points, all six cost 33,234, and the
+generated table grants 9795 by level 300. A max-level character can take **one**
+stat to 200 and still have 4256 points — roughly the other five at 99. The cap is
+build-defining rather than something everyone maxes out. `gen-level-tables.py`
+prints this budget on every run; retune with `--stat-formula` or `--max-level`.
+
+**Exp ceiling.** `src/config/const.hpp` sets
+`MAX_EXP = PACKETVER >= 20170830 ? INT64_MAX : INT32_MAX`, and this image builds
+at packetver 20111102 — so per-level exp must stay under **2,147,483,647**. The
+generator enforces it and defaults to a 2,000,000,000 ceiling at the last level.
+That is also why the transcendent curve converges on the normal one at high
+level: both have to fit under the same int32 roof, so trans cannot stay 3× above
+it. Raising the ceiling needs a newer packetver, i.e. a different image.
+
+Job levels (`MaxJobLevel` 10/50/70/99) are deliberately untouched.
+
+Verify after restart:
+
+```bash
+docker compose -f docker-compose.world.yml --env-file .env.world-highrate logs map \
+  | grep -iE "job_stats|statpoint|Failed to open|exceeds"
+```
+
+---
+
 ## Per-world NPCs
 
 All worlds run the same `rathena:prod` image, so every world *has* every script

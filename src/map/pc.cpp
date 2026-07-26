@@ -8800,7 +8800,19 @@ uint32 PlayerStatPointDatabase::pc_gets_trait_point(uint16 level) const{
 #define PC_STATUS_POINT_COST(low) (((low) < 100) ? (2 + ((low) - 1) / 10) : (16 + 4 * (((low) - 100) / 5)))
 #else
 /// Pre-Renewal status point cost formula
-#define PC_STATUS_POINT_COST(low) (( 1 + ((low) + 9) / 10 ))
+///
+/// Below 100 this is stock rAthena: 1 + (low + 9) / 10. Above it, the cost grows
+/// by 4 every 5 points instead of 1 every 10, so raising a stat into the
+/// 100-200 range is progressively expensive (low=150 costs 51 instead of 16,
+/// low=199 costs 87 instead of 21).
+///
+/// The branch is deliberately placed at 100 and made continuous there (low=99
+/// and low=100 both cost 11): every world whose stat cap is 99 can never reach
+/// the second branch, so their allocation costs are bit-for-bit unchanged. Only
+/// worlds that raise max_parameter above 99 (see production/SETUP.md,
+/// "Per-world level cap") are affected. This is compile-time and therefore
+/// shared by every world on the image, which is why the split matters.
+#define PC_STATUS_POINT_COST(low) (( (low) < 100 ? ( 1 + ((low) + 9) / 10 ) : ( 11 + 4 * (((low) - 100) / 5) ) ))
 #endif
 
 /// Returns the number of stat points needed to change the specified stat by val.

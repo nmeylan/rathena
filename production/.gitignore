@@ -10,3 +10,6 @@ asset-login/inter_conf.txt
 asset-login/login_conf.txt
 asset-world-*/
 !asset-world-template/
+
+# Python bytecode from gen-level-tables.py
+__pycache__/

@@ -111,6 +111,18 @@ SERVER_NAME=$SERVER_NAME
 CHAR_PORT=$CHAR_PORT
 MAP_PORT=$MAP_PORT
 PUBLIC_IP=$PUBLIC_IP
+
+# --- optional per-world gameplay knobs (render-assets.sh defaults them) ---
+# Stat caps, rendered into battle_conf.txt. Default to stock if unset (99 / 99 /
+# 80). Raise them alongside a raised level cap — at 99 the six stats are
+# saturated by base level 181, so levels past that buy nothing.
+# MAX_TRANS_PARAMETER defaults to MAX_PARAMETER: transcendent jobs are the
+# pre-renewal endgame and have their OWN cap, so setting only max_parameter
+# would leave Lord Knight, High Priest and friends at 99.
+# See SETUP.md, "Per-world level cap".
+#MAX_PARAMETER=99
+#MAX_TRANS_PARAMETER=99
+#MAX_BABY_PARAMETER=80
 EOF
 
 echo

@@ -13,6 +13,8 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 LOGIN_TEMPLATE_DIR="$HERE/asset-login-template"
 WORLD_TEMPLATE_DIR="$HERE/asset-world-template"
 WORLD_NPC_DIR="$HERE/world-npc"
+WORLD_DBIMPORT_DIR="$HERE/world-db"
+DB_IMPORT_TMPL="$HERE/../db/import-tmpl"
 LOGIN_ENV=".env"
 WORLD_ENV=""
 MODE=""
@@ -112,8 +114,16 @@ DB_USER="${DB_USER:-ragnarok}"
 : "${MAP_PORT:?set MAP_PORT in $WORLD_ENV}"
 : "${PUBLIC_IP:?set PUBLIC_IP in $WORLD_ENV}"
 
+# Optional per-world knobs: defaulted here so existing world env files (written
+# before these were introduced) keep rendering unchanged. 99 is the stock
+# conf/battle/player.conf value, so an unset MAX_PARAMETER is a no-op.
+MAX_PARAMETER="${MAX_PARAMETER:-99}"
+MAX_TRANS_PARAMETER="${MAX_TRANS_PARAMETER:-$MAX_PARAMETER}"   # stock is also 99
+MAX_BABY_PARAMETER="${MAX_BABY_PARAMETER:-80}"
+
 TOKENS=(DB_USER DB_PASSWORD WORLD WORLD_DB SERVER_USERID SERVER_PASSWORD \
-        SERVER_NAME CHAR_PORT MAP_PORT PUBLIC_IP)
+        SERVER_NAME CHAR_PORT MAP_PORT PUBLIC_IP \
+        MAX_PARAMETER MAX_TRANS_PARAMETER MAX_BABY_PARAMETER)
 
 if [ -d "$CONFIG_DIR" ] && [ "$FORCE" -ne 1 ]; then
     echo ">> updating existing $CONFIG_DIR (use --force to silence this note)"
@@ -147,6 +157,26 @@ rm -rf "$CONFIG_DIR/npc"
 mkdir -p "$CONFIG_DIR/npc"
 cp -a "$NPC_SRC"/. "$CONFIG_DIR/npc"/
 echo "   wrote $CONFIG_DIR/npc/ from $NPC_SRC_LABEL"
+
+# ---- per-world db/import overrides ----
+# Mounted at /rathena/db/import, the LAST entry in every db Footer import chain
+# (db/job_stats.yml, db/statpoint.yml, …), so it is the per-world override point
+# for level caps, exp tables and other db values.
+#
+# Seeded from db/import-tmpl FIRST, then this world's overrides on top. The seed
+# is not optional: the mount replaces /rathena/db/import wholesale, and every
+# file in import-tmpl is referenced by some Footer, so without it each one logs a
+# "Failed to open" error at boot. (Same trap as conf/import — see SETUP.md.)
+[ -d "$DB_IMPORT_TMPL" ] || { echo "error: $DB_IMPORT_TMPL not found" >&2; exit 1; }
+rm -rf "$CONFIG_DIR/db-import"
+mkdir -p "$CONFIG_DIR/db-import"
+cp -a "$DB_IMPORT_TMPL"/. "$CONFIG_DIR/db-import"/
+if [ -d "$WORLD_DBIMPORT_DIR/$WORLD" ]; then
+    cp -a "$WORLD_DBIMPORT_DIR/$WORLD"/. "$CONFIG_DIR/db-import"/
+    echo "   wrote $CONFIG_DIR/db-import/ from db/import-tmpl + world-db/$WORLD"
+else
+    echo "   wrote $CONFIG_DIR/db-import/ from db/import-tmpl (no world-db/$WORLD — stock db values)"
+fi
 
 echo ">> done. Bring the world up:  docker compose -f docker-compose.world.yml --env-file $WORLD_ENV up -d"
 echo "   (already running? \`@reloadscript\` in-game picks up NPC list changes.)"

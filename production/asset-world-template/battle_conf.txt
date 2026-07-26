@@ -4,23 +4,38 @@
 // --- World ${WORLD} battle settings ---
 //
 // Overrides conf/battle/*.conf for THIS world only (imported last, via
-// conf/battle_athena.conf -> conf/import/battle_conf.txt). Intentionally empty:
-// every world currently runs stock rates.
+// conf/battle_athena.conf -> conf/import/battle_conf.txt).
+
+// Stat caps. Default to the stock conf/battle/player.conf values, so worlds that
+// set none of these in their env file are unaffected.
 //
-// Per-world rates are the usual reason to fill this in, e.g.:
+// These are the ceiling on what a raised level cap can actually buy: in
+// pre-renewal it costs 3768 status points to take all six stats to 99, and the
+// stock statpoint table already hands out 4545 by level 200 — so at a cap of 99
+// the stats are saturated by base level 181 and every level after that is
+// cosmetic. See SETUP.md, "Per-world level cap".
+//
+// There are NINE caps, applied per class family by pc_maxparameter /
+// JobDatabase::loadingFinished (src/map/pc.cpp:14338). Only these three can be
+// reached in pre-renewal, and max_parameter alone would leave every
+// transcendent job (Lord Knight, High Priest, …) — the actual endgame — at 99.
+// The other six (third/fourth/extended/summoner/trait) are renewal-only here.
+max_parameter: ${MAX_PARAMETER}
+max_trans_parameter: ${MAX_TRANS_PARAMETER}
+max_baby_parameter: ${MAX_BABY_PARAMETER}
+
+// Other per-world rates go here, e.g.:
 //
 //   base_exp_rate: 100
 //   job_exp_rate: 100
 //   item_rate_common: 100
-//   item_rate_equip: 100
-//   item_rate_mvp: 100
 //
-// Hardcoding them here applies them to every world, since all worlds render
-// from this one template. To vary them per world, add the variable to
-// .env.world-<id>, list it in the TOKENS array in render-assets.sh, and
-// reference it here in dollar-brace form. A placeholder left unresolved aborts
-// the render, so a token added here without a matching env entry fails loudly
-// instead of silently emitting an empty value.
+// Hardcoding them applies them to every world, since all worlds render from this
+// one template. To vary them per world, add the variable to .env.world-<id>,
+// list it in the TOKENS array in render-assets.sh, and reference it here in
+// dollar-brace form. A placeholder left unresolved aborts the render, so a token
+// added here without a matching env entry fails loudly rather than silently
+// emitting an empty value.
 //
 // NOTE: this comment cannot itself show a dollar-brace example — render-assets.sh
 // greps the output for leftover placeholders and would abort on it.

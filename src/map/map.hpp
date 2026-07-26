@@ -75,7 +75,13 @@ void map_msg_reload(void);
 #define NATURAL_HEAL_INTERVAL 500
 #define MIN_FLOORITEM 2
 #define MAX_FLOORITEM START_ACCOUNT_NUM
-#define MAX_LEVEL 275
+// Raised from the rAthena default of 275 for world-highrate (base level 300).
+// Compile-time, so this is a ceiling shared by EVERY world on the rathena:prod
+// image; each world's actual cap comes from its BaseExp table + MaxBaseLevel
+// (see production/SETUP.md, "Per-world level cap"). Raising this also makes
+// PlayerStatPointDatabase::loadingFinished iterate to 300 in every world, which
+// is why db/{pre-re,re}/statpoint.yml carry entries up to 300.
+#define MAX_LEVEL 300
 #define MAX_DROP_PER_MAP 48
 #define MAX_IGNORE_LIST 20 	// official is 14
 #define MAX_VENDING 12

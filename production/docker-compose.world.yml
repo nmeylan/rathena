@@ -26,6 +26,12 @@ x-server-common: &server-common
         # world's npc/ subdir, which drives its NPC list; see SETUP.md
         # "Per-world NPCs". Everything in here is rendered by render-assets.sh.
         - "${CONFIG_DIR:?set CONFIG_DIR in the world env file}:/rathena/conf/import:ro"
+        # Per-world db overrides: level cap, exp tables, stat points. This is the
+        # last entry in every db Footer import chain, so it wins over db/ and
+        # db/pre-re/. Rendered as CONFIG_DIR/db-import (seeded from
+        # db/import-tmpl, so it does not shadow the image's copies) — run
+        # render-assets.sh before `up`, or this mounts empty.
+        - "${CONFIG_DIR}/db-import:/rathena/db/import:ro"
         - "log:/rathena/log"
     logging:
         driver: "json-file"
