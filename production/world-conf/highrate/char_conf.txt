@@ -1,0 +1,1 @@
+start_point_pre: prontera,153,141
