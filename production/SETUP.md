@@ -347,11 +347,23 @@ npc: conf/import/npc/pvp_arena.txt
 
 Then restart the world, or just `@reloadscript` in-game — the chain is re-read.
 
-**Put actively-edited world scripts in `world-npc/<id>/`, not `npc/`.** They
-arrive via the bind mount, so a change needs only `@reloadscript`. Anything
-under `npc/` is inside `COPY . /rathena`, so editing it invalidates that layer
-and forces a **full map-server recompile** (the ~3 GiB `skill.cpp` unity build —
-see [Build reference](#build-reference)). Keep `npc/` for stable shared scripts.
+**Both `npc/` and `world-npc/<id>/` are bind-mounted, so neither needs an image
+rebuild** — edit, then `@reloadscript`. The split is about *scope*, not
+deployability: `world-npc/<id>/` is that one world's list, `npc/` is shared by
+every world at once. `docker-compose.world.yml` mounts the host checkout's
+`npc/` read-only at `/rathena/npc` (override the source with `NPC_DIR`),
+shadowing the copy `COPY . /rathena` baked into the image.
+
+That mount means **the working tree on the VPS, not the image, decides which
+scripts run.** Two consequences: a `git pull` changes what the next
+`@reloadscript` loads even though the image is untouched, and rolling the image
+back does *not* roll scripts back. Keep the checkout on the commit the image was
+built from unless you specifically mean to diverge — a script using a command
+the compiled binary lacks fails at reload, not at build. Editing `npc/` does
+still invalidate the `COPY . /rathena` layer and force a full recompile the
+*next* time you build for some other reason (the ~3 GiB `skill.cpp` unity build —
+see [Build reference](#build-reference)); it just no longer blocks deploying a
+script.
 
 **Do not** put per-world `npc:` lines in `conf/import/map_conf.txt` instead.
 `map_conf.txt` does accept them at boot (`src/map/map.cpp:4170`), but
@@ -440,6 +452,9 @@ re-run `./render-assets.sh --env-file .env.world-<id>`, then restart that world.
 --login` and each world), restart.
 **Change a world's NPCs:** edit `world-npc/<id>/`, re-render, then
 `@reloadscript` — see [Per-world NPCs](#per-world-npcs). No image rebuild.
+**Change shared NPCs:** edit (or `git pull`) `npc/`, then `@reloadscript`. It is
+bind-mounted read-only into every world, so no re-render and no image rebuild —
+but see the divergence warning in [Per-world NPCs](#per-world-npcs).
 
 **Local (non-Docker) dev server:** `npc/scripts_custom.conf` imports
 `conf/import/npc/scripts_world.conf`, which in production comes from the world's

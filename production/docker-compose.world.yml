@@ -32,6 +32,17 @@ x-server-common: &server-common
         # db/import-tmpl, so it does not shadow the image's copies) — run
         # render-assets.sh before `up`, or this mounts empty.
         - "${CONFIG_DIR}/db-import:/rathena/db/import:ro"
+        # Shared scripts, straight from the host checkout — shadows the copy
+        # baked in by `COPY . /rathena`. Editing anything under npc/ then needs
+        # only `@reloadscript`, no image rebuild (which is a full ~3 GiB
+        # skill.cpp recompile). Read-only: nothing under npc/ is written at
+        # runtime — npc/barters.yml is load-only (src/map/npc.cpp:395), barter
+        # stock persists to SQL.
+        #   Trade-off: scripts now come from the working tree, not the image, so
+        # `git pull` changes what the next reload loads and rolling the image
+        # back does NOT roll scripts back. Keep the checkout on the commit the
+        # image was built from unless you mean to diverge.
+        - "${NPC_DIR:-../npc}:/rathena/npc:ro"
         - "log:/rathena/log"
     logging:
         driver: "json-file"
