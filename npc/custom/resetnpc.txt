@@ -47,3 +47,4 @@ prontera,150,193,4	script	Reset Girl	124,{
 	if(.@Reset[3]) set reset_limit,reset_limit + 1;
 	close;
 }
+prt_monk,260,217 duplicate(Reset Girl)	Healer#prtmonk	909
