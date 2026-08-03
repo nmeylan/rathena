@@ -24,6 +24,7 @@ function Go; function Disp; function Pick; function Restrict;
 // --------------------------------------------------
 
 menu	"Last Warp ^777777["+lastwarp$+"]^000000",-,
+    	" ~ Capital",Capital,
     	" ~ Towns",Towns,
     	" ~ Fields",Fields,
     	" ~ Dungeons",Dungeons,
@@ -134,6 +135,8 @@ function Restrict {
 	return;
 }
 
+Capital:
+Go("prt_monk", 264,203);
 // --------------------------------------------------
 	Towns:
 // --------------------------------------------------
