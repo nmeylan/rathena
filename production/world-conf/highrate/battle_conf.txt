@@ -54,3 +54,10 @@ item_drop_add_max: 10000
 
 
 show_mob_info: 2
+
+// Death penalty: lose 10% of the current level's exp, base and job.
+// Values are in 0.01% units (conf/battle/exp.conf:82), so 1000 = 10%.
+// Stock is 100 (1%). Type 1 = % of current level, not of total exp.
+death_penalty_type: 1
+death_penalty_base: 1000
+death_penalty_job: 1000

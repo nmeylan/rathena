@@ -1,0 +1,33 @@
+# Merged on top of the image's conf/groups.yml via its
+# `Footer: Imports: conf/import/groups.yml`. Entries are matched by Id
+# (src/map/pc_groups.cpp:73), so only the keys listed here are patched —
+# Name / Level / existing Permissions of group 0 stay as shipped.
+#
+# Group 0 is what every new account gets, i.e. regular non-GM players.
+# Set a command to `false` to take it away again.
+
+Header:
+  Type: PLAYER_GROUP_DB
+  Version: 1
+
+Body:
+  - Id: 0
+    Commands:
+      # Loot QoL
+      autoloot: true
+      alootid: true
+      autoloottype: true
+      # Etiquette / anti-grief
+      noks: true
+      noask: true
+      # Informational
+      commands: true
+      help: true
+      rates: true
+      time: true
+      iteminfo: true
+      mobinfo: true
+      whodrops: true
+      exp: true
+      # Misc
+      refresh: true
