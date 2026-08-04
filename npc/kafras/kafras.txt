@@ -421,6 +421,34 @@ cmd_fild07,136,134,4	script	Kafra Employee::kaf_cmd_fild07	721,{
 	callfunc "F_KafEnd",0,1,"in the city of Izlude";
 }
 
+// Monk
+//============================================================
+-	script	::kaf_monk	-1,{
+	cutin "kafra_01",2;
+	callfunc "F_KafSet";
+	mes "[Kafra Employee]";
+	mes "Welcome to the";
+	mes "Kafra Corporation.";
+	mes "The Kafra services";
+	mes "are always on your side.";
+	mes "How may I assist you?";
+	callfunc "F_Kafra",5,0,1,40,820;
+	savepoint "prt_monk",244,234,1,1;
+	callfunc "F_KafEnd",0,1,"in the city of Prontera";
+}
+-	script	::kaf_prontera	-1,{
+	cutin "kafra_01",2;
+	callfunc "F_KafSet";
+	mes "[Kafra Employee]";
+	mes "Welcome to the";
+	mes "Kafra Corporation.";
+	mes "The Kafra services";
+	mes "are always on your side.";
+	mes "How may I assist you?";
+	callfunc "F_Kafra",5,0,1,40,820;
+	savepoint "prontera",155,183,1,1;
+	callfunc "F_KafEnd",0,1,"in the city of Prontera";
+}
 // Moscovia
 //============================================================
 moscovia,223,191,3	script	Kafra Employee::kaf_mosk	114,{
