@@ -436,7 +436,7 @@ cmd_fild07,136,134,4	script	Kafra Employee::kaf_cmd_fild07	721,{
 	savepoint "prt_monk",244,234,1,1;
 	callfunc "F_KafEnd",0,1,"in the city of Prontera";
 }
--	script	::kaf_prontera	-1,{
+-	script	::kaf_pronteraa	-1,{
 	cutin "kafra_01",2;
 	callfunc "F_KafSet";
 	mes "[Kafra Employee]";
