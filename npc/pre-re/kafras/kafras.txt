@@ -23,4 +23,4 @@
 //============================================================
 izlude,134,87,3	duplicate(kaf_izlude)	Kafra Employee#iz	117
 prontera,157,194,3	duplicate(kaf_pronteraa)	Kafra Employee#prt	117
-prt_monk,270,207,3	duplicate(kaf_monk)	Kafra Employee#prtmonk	117
+prt_monk,270,207,3	duplicate(kaf_monkk)	Kafra Employee#prtmonkk	117

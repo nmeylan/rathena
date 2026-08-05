@@ -423,7 +423,7 @@ cmd_fild07,136,134,4	script	Kafra Employee::kaf_cmd_fild07	721,{
 
 // Monk
 //============================================================
--	script	::kaf_monk	-1,{
+-	script	::kaf_monkk	-1,{
 	cutin "kafra_01",2;
 	callfunc "F_KafSet";
 	mes "[Kafra Employee]";
@@ -433,7 +433,7 @@ cmd_fild07,136,134,4	script	Kafra Employee::kaf_cmd_fild07	721,{
 	mes "are always on your side.";
 	mes "How may I assist you?";
 	callfunc "F_Kafra",5,0,1,40,820;
-	savepoint "prt_monk",244,234,1,1;
+	savepoint "prt_monk",262,203,1,1;
 	callfunc "F_KafEnd",0,1,"in the city of Prontera";
 }
 -	script	::kaf_pronteraa	-1,{
