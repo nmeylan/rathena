@@ -61,3 +61,5 @@ show_mob_info: 2
 death_penalty_type: 1
 death_penalty_base: 1000
 death_penalty_job: 1000
+
+homunculus_autoloot: yes
