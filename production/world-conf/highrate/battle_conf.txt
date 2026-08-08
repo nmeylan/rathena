@@ -48,7 +48,7 @@ item_drop_mvp_max: 10000
 item_drop_mvp_mode: 0
 
 // The rate adjustment for equip-granted item drops.
-item_rate_adddrop: 500
+item_rate_adddrop: 1000
 item_drop_add_min: 50
 item_drop_add_max: 10000
 
