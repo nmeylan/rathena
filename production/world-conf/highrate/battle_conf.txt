@@ -63,3 +63,10 @@ death_penalty_base: 1000
 death_penalty_job: 1000
 
 homunculus_autoloot: yes
+
+// No logout delay. Stock is 10000 (10s after attacking / casting / being hit,
+// per prevent_logout_trigger). 0 disables the check in clif_parse_QuitGame,
+// clif_parse_Restart and clif_quitsave, so Exit and Char-Select are instant and
+// a dropped connection removes the character from the map immediately instead
+// of leaving it standing there for 10s.
+prevent_logout: 0
